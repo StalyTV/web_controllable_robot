@@ -114,6 +114,7 @@ class VideoCamera:
         self.output = StreamingOutput()
         
         if PICAMERA_AVAILABLE:
+            print("Using PiCamera2 for video capture...")
             # Use PiCamera2 for Raspberry Pi (most efficient)
             self.camera = Picamera2()
             # Configure for low latency streaming with 180-degree rotation
@@ -128,6 +129,7 @@ class VideoCamera:
             self.encoder = JpegEncoder(q=70)  # Quality 70 for balance of size/quality
             self.camera.start_recording(self.encoder, FileOutput(self.output))
         else:
+            print("Using OpenCV for video capture...")
             # Fallback to OpenCV (for development/testing)
             self.camera = cv2.VideoCapture(0)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
