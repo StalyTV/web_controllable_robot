@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Quick setup script for Raspberry Pi
-# Run with: curl -sSL https://raw.githubusercontent.com/your-repo/setup.sh | bash
+# Run with: curl -sSL https://raw.githubusercontent.com/StalyTV/web_controllable_robot/main/setup.sh | bash
 
 echo "Setting up Web Controllable Robot on Raspberry Pi..."
 
@@ -16,10 +16,10 @@ sudo apt install python3-picamera2 python3-pip python3-venv git -y
 # Create project directory
 echo "Setting up project..."
 cd ~
-git clone https://github.com/your-username/Web_Contrallable_Robot.git || {
-    echo "Please update the git URL in this script"
-    mkdir -p Web_Contrallable_Robot
-    cd Web_Contrallable_Robot
+git clone https://github.com/StalyTV/web_controllable_robot.git || {
+    echo "Failed to clone repository. Creating directory manually..."
+    mkdir -p web_controllable_robot
+    cd web_controllable_robot
 }
 
 # Setup virtual environment

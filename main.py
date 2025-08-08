@@ -282,7 +282,7 @@ if __name__ == '__main__':
         print("Use arrow keys or WASD for control, Space/Esc to stop")
         
         # Run with minimal threads for better performance on Pi
-        app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+        app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)
         
     except KeyboardInterrupt:
         print("\nShutting down...")
