@@ -1,0 +1,13 @@
+# Core web framework
+flask==2.3.3
+
+# Computer vision (fallback for development)
+opencv-python==4.8.1.78
+
+# Raspberry Pi specific (install on Pi only)
+# picamera2  # Will be installed via apt on Raspberry Pi OS
+
+# Optional: For more advanced robot control
+# RPi.GPIO  # For direct GPIO control on Raspberry Pi
+# adafruit-circuitpython-motor  # For motor control
+# pyserial  # For Arduino/serial communication
