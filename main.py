@@ -134,6 +134,7 @@ class VideoCamera:
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             self.camera.set(cv2.CAP_PROP_FPS, 30)
             self._start_opencv_capture()
+            self.camera.rotation = 180  # Rotate 180 degrees for OpenCV
 
     def _start_opencv_capture(self):
         """Start OpenCV capture in separate thread"""
