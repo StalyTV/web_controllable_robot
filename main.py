@@ -12,6 +12,7 @@ try:
     from picamera2 import Picamera2
     from picamera2.encoders import JpegEncoder
     from picamera2.outputs import FileOutput
+    from libcamera import Transform
     PICAMERA_AVAILABLE = True
 except ImportError:
     import cv2
@@ -121,7 +122,7 @@ class VideoCamera:
             config = self.camera.create_video_configuration(
                 main={"size": (640, 480), "format": "RGB888"},
                 lores={"size": (320, 240), "format": "YUV420"},
-                transform={"hflip": True}  # 180-degree rotation
+                transform=Transform(hflip=True) # 180-degree rotation
             )
             self.camera.configure(config)
             
