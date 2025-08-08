@@ -122,6 +122,7 @@ class VideoCamera:
                 lores={"size": (320, 240), "format": "YUV420"},
             )
             self.camera.configure(config)
+            self.camera.rotation = 180
             
             # Use hardware JPEG encoder for minimal CPU usage
             self.encoder = JpegEncoder(q=70)  # Quality 70 for balance of size/quality
