@@ -18,7 +18,84 @@ except ImportError:
     PICAMERA_AVAILABLE = False
     print("PiCamera2 not available, using OpenCV as fallback")
 
+try:
+    import serial
+    SERIAL_AVAILABLE = True
+except ImportError:
+    SERIAL_AVAILABLE = False
+    print("PySerial not available, robot control disabled")
+
 app = Flask(__name__)
+
+class RobotController:
+    """Serial communication controller for Arduino-based robot"""
+    def __init__(self, port='/dev/ttyS0', baudrate=9600):
+        self.serial_connection = None
+        self.last_command = None
+        self.command_lock = threading.Lock()
+        
+        if SERIAL_AVAILABLE:
+            try:
+                # Try common serial ports for Raspberry Pi
+                ports_to_try = [port, '/dev/ttyAMA0', '/dev/ttyUSB0', '/dev/ttyACM0']
+                for test_port in ports_to_try:
+                    try:
+                        self.serial_connection = serial.Serial(test_port, baudrate, timeout=1)
+                        print(f"Robot controller connected on {test_port}")
+                        break
+                    except (serial.SerialException, FileNotFoundError):
+                        continue
+                
+                if not self.serial_connection:
+                    print("Warning: No serial connection found. Robot control disabled.")
+            except Exception as e:
+                print(f"Error initializing robot controller: {e}")
+        else:
+            print("Serial library not available. Robot control will be simulated.")
+    
+    def send_command(self, command):
+        """Send command to Arduino via serial"""
+        command_map = {
+            'forward': 'fo',
+            'backward': 'ba', 
+            'left': 'le',
+            'right': 'ri',
+            'stop': 'st'
+        }
+        
+        if command not in command_map:
+            return False
+            
+        serial_cmd = command_map[command]
+        
+        with self.command_lock:
+            if self.serial_connection:
+                try:
+                    self.serial_connection.write((serial_cmd + '\n').encode())
+                    self.serial_connection.flush()
+                    self.last_command = command
+                    print(f"Sent to Arduino: {serial_cmd} ({command})")
+                    return True
+                except Exception as e:
+                    print(f"Serial communication error: {e}")
+                    return False
+            else:
+                # Simulate command for testing
+                self.last_command = command
+                print(f"Simulated robot command: {serial_cmd} ({command})")
+                return True
+    
+    def emergency_stop(self):
+        """Send immediate stop command"""
+        return self.send_command('stop')
+    
+    def close(self):
+        """Close serial connection"""
+        if self.serial_connection:
+            self.emergency_stop()
+            time.sleep(0.1)  # Give time for stop command
+            self.serial_connection.close()
+            print("Robot controller disconnected")
 
 class StreamingOutput(io.BufferedIOBase):
     """Thread-safe streaming output for camera frames"""
@@ -85,8 +162,9 @@ class VideoCamera:
         else:
             self.camera.release()
 
-# Initialize camera
+# Initialize camera and robot controller
 camera = VideoCamera()
+robot = RobotController()
 
 def generate_frames():
     """Generator function for video streaming"""
@@ -177,15 +255,15 @@ def index():
             <h3>Robot Controls</h3>
             <div class="control-grid">
                 <div></div>
-                <button class="control-btn" onclick="sendCommand('forward')">↑ Forward</button>
+                <button class="control-btn" data-command="forward">↑ Forward</button>
                 <div></div>
                 
-                <button class="control-btn" onclick="sendCommand('left')">← Left</button>
-                <button class="control-btn" onclick="sendCommand('stop')">⏹ Stop</button>
-                <button class="control-btn" onclick="sendCommand('right')">→ Right</button>
+                <button class="control-btn" data-command="left">← Left</button>
+                <button class="control-btn" data-command="stop">⏹ Stop</button>
+                <button class="control-btn" data-command="right">→ Right</button>
                 
                 <div></div>
-                <button class="control-btn" onclick="sendCommand('backward')">↓ Backward</button>
+                <button class="control-btn" data-command="backward">↓ Backward</button>
                 <div></div>
             </div>
         </div>
@@ -194,21 +272,92 @@ def index():
     </div>
 
     <script>
+        let currentCommand = null;
+        let isKeyPressed = false;
+        
         function sendCommand(command) {
-            fetch('/control/' + command, {method: 'POST'})
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('status').innerHTML = 
-                        'Command: ' + command.toUpperCase() + ' - ' + data.message;
-                })
-                .catch(error => {
-                    document.getElementById('status').innerHTML = 
-                        'Error: ' + error.message;
-                });
+            if (currentCommand !== command) {
+                currentCommand = command;
+                fetch('/control/' + command, {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('status').innerHTML = 
+                            'Command: ' + command.toUpperCase() + ' - ' + data.message;
+                    })
+                    .catch(error => {
+                        document.getElementById('status').innerHTML = 
+                            'Error: ' + error.message;
+                    });
+            }
         }
         
-        // Add keyboard controls
+        function stopRobot() {
+            if (currentCommand !== 'stop') {
+                currentCommand = 'stop';
+                fetch('/control/stop', {method: 'POST'})
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('status').innerHTML = 
+                            'Command: STOP - ' + data.message;
+                    });
+            }
+        }
+        
+        // Button event handlers for continuous press
+        function setupButtonEvents() {
+            const buttons = document.querySelectorAll('.control-btn');
+            buttons.forEach(button => {
+                const command = button.getAttribute('data-command');
+                
+                // Mouse events
+                button.addEventListener('mousedown', () => {
+                    if (command !== 'stop') {
+                        sendCommand(command);
+                    } else {
+                        stopRobot();
+                    }
+                });
+                
+                button.addEventListener('mouseup', () => {
+                    if (command !== 'stop') {
+                        stopRobot();
+                    }
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    if (command !== 'stop') {
+                        stopRobot();
+                    }
+                });
+                
+                // Touch events for mobile
+                button.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if (command !== 'stop') {
+                        sendCommand(command);
+                    } else {
+                        stopRobot();
+                    }
+                });
+                
+                button.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    if (command !== 'stop') {
+                        stopRobot();
+                    }
+                });
+            });
+        }
+        
+        // Keyboard controls with continuous press
+        let pressedKeys = new Set();
+        
         document.addEventListener('keydown', function(event) {
+            if (pressedKeys.has(event.key)) return; // Already pressed
+            
+            pressedKeys.add(event.key);
+            isKeyPressed = true;
+            
             switch(event.key) {
                 case 'ArrowUp': case 'w': case 'W':
                     sendCommand('forward'); break;
@@ -219,8 +368,26 @@ def index():
                 case 'ArrowRight': case 'd': case 'D':
                     sendCommand('right'); break;
                 case ' ': case 'Escape':
-                    sendCommand('stop'); break;
+                    stopRobot(); break;
             }
+        });
+        
+        document.addEventListener('keyup', function(event) {
+            pressedKeys.delete(event.key);
+            
+            switch(event.key) {
+                case 'ArrowUp': case 'w': case 'W':
+                case 'ArrowDown': case 's': case 'S':
+                case 'ArrowLeft': case 'a': case 'A':
+                case 'ArrowRight': case 'd': case 'D':
+                    stopRobot(); break;
+            }
+        });
+        
+        // Stop robot when window loses focus
+        window.addEventListener('blur', function() {
+            stopRobot();
+            pressedKeys.clear();
         });
         
         // Connection status indicator
@@ -234,6 +401,9 @@ def index():
                     }
                 });
         }, 5000);
+        
+        // Initialize button events when page loads
+        document.addEventListener('DOMContentLoaded', setupButtonEvents);
     </script>
 </body>
 </html>
@@ -248,20 +418,14 @@ def video_feed():
 @app.route('/control/<command>', methods=['POST'])
 def control_robot(command):
     """Handle robot control commands"""
-    # This is where you would add actual robot control logic
-    # For now, just acknowledge the command
-    
     valid_commands = ['forward', 'backward', 'left', 'right', 'stop']
     
     if command in valid_commands:
-        # TODO: Add actual motor control here
-        # Examples:
-        # - GPIO control for motor drivers
-        # - Serial communication to Arduino
-        # - I2C communication to motor controller
-        
-        print(f"Robot command received: {command}")
-        return {'status': 'success', 'message': f'Executing {command}'}
+        success = robot.send_command(command)
+        if success:
+            return {'status': 'success', 'message': f'Executing {command}'}
+        else:
+            return {'status': 'error', 'message': 'Serial communication failed'}, 500
     else:
         return {'status': 'error', 'message': 'Invalid command'}, 400
 
@@ -270,7 +434,9 @@ def status():
     """Get system status"""
     return {
         'camera_active': True,
-        'robot_connected': True,
+        'robot_connected': robot.serial_connection is not None if SERIAL_AVAILABLE else False,
+        'serial_available': SERIAL_AVAILABLE,
+        'last_command': robot.last_command,
         'timestamp': time.time()
     }
 
@@ -278,7 +444,7 @@ if __name__ == '__main__':
     try:
         print("Starting Web Controllable Robot Server...")
         print("Camera initialized successfully")
-        print("Access the robot at: http://localhost:5000")
+        print("Access the robot at: http://localhost:8080")
         print("Use arrow keys or WASD for control, Space/Esc to stop")
         
         # Run with minimal threads for better performance on Pi
@@ -287,5 +453,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("\nShutting down...")
     finally:
+        robot.emergency_stop()
+        robot.close()
         camera.close()
-        print("Camera closed. Goodbye!")
+        print("Robot and camera closed. Goodbye!")

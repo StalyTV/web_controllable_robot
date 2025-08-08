@@ -13,9 +13,11 @@ A minimalistic web-controlled robot with live video streaming, optimized for Ras
 
 - Raspberry Pi (3B+ or newer recommended)
 - Raspberry Pi Camera Module (v1, v2, or HQ)
+- Arduino Uno/Nano (for motor control)
 - Robot chassis with motors
 - Motor driver board (L298N, Adafruit Motor HAT, etc.)
-- Power supply
+- Jumper wires for serial connection (Pi TX → Arduino RX)
+- Power supply for both Pi and motors
 
 ## Installation
 
@@ -37,10 +39,13 @@ source .venv/bin/activate
 pip install flask opencv-python
 ```
 
-3. **Enable camera:**
+3. **Enable camera and serial:**
 ```bash
 sudo raspi-config
 # Navigate to Interface Options > Camera > Enable
+# Navigate to Interface Options > Serial Port > 
+#   - Would you like a login shell accessible over serial? > No
+#   - Would you like the serial port hardware enabled? > Yes
 sudo reboot
 ```
 
@@ -52,21 +57,53 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Hardware Connections
+
+### Raspberry Pi to Arduino Serial Connection
+- **Pi GPIO 14 (TX)** → **Arduino Pin 0 (RX)**
+- **Pi GPIO 15 (RX)** → **Arduino Pin 1 (TX)** (optional, for debugging)
+- **Pi GND** → **Arduino GND**
+
+### Arduino Motor Driver Connections (L298N Example)
+- **Arduino Pin 2** → **L298N IN1**
+- **Arduino Pin 3** → **L298N IN2** 
+- **Arduino Pin 4** → **L298N IN3**
+- **Arduino Pin 5** → **L298N IN4**
+- **Arduino Pin 9** → **L298N ENA** (PWM)
+- **Arduino Pin 10** → **L298N ENB** (PWM)
+
 ## Usage
 
-1. **Start the server:**
+1. **Upload Arduino code:**
+   - Open `arduino_robot_controller.ino` in Arduino IDE
+   - Adjust motor pins for your hardware setup
+   - Upload to your Arduino
+
+2. **Start the server:**
 ```bash
 python main.py
 ```
 
-2. **Access the web interface:**
-   - Local: http://localhost:5000
-   - Network: http://[PI_IP_ADDRESS]:5000
+3. **Access the web interface:**
+   - Local: http://localhost:8080
+   - Network: http://[PI_IP_ADDRESS]:8080
 
-3. **Controls:**
-   - **Web buttons:** Click direction buttons
-   - **Keyboard:** Arrow keys or WASD
-   - **Stop:** Space bar or Escape key
+4. **Controls:**
+   - **Web buttons:** Hold down for continuous movement
+   - **Keyboard:** Hold arrow keys or WASD for movement
+   - **Auto-stop:** Robot stops when key/button is released
+   - **Emergency stop:** Space bar or Escape key
+
+## Robot Control Protocol
+
+The system sends these commands to Arduino via serial:
+- **"fo"** - Move forward
+- **"ba"** - Move backward  
+- **"le"** - Turn left
+- **"ri"** - Turn right
+- **"st"** - Stop motors
+
+Commands are sent continuously while keys/buttons are pressed and "st" is sent immediately on release for responsive control.
 
 ## Robot Control Integration
 

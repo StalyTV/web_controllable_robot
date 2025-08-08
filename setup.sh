@@ -19,15 +19,15 @@ cd ~
 git clone https://github.com/StalyTV/web_controllable_robot.git || {
     echo "Failed to clone repository. Creating directory manually..."
     mkdir -p web_controllable_robot
-    cd web_controllable_robot
 }
+cd web_controllable_robot
 
 # Setup virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
 # Install Python packages
-pip install flask opencv-python
+pip install flask opencv-python pyserial
 
 # Enable camera if not already enabled
 echo "Checking camera configuration..."
@@ -65,7 +65,7 @@ fi
 
 echo "Setup complete!"
 echo "Run the robot with: python main.py"
-echo "Access at: http://$(hostname -I | awk '{print $1}'):5000"
+echo "Access at: http://$(hostname -I | awk '{print $1}'):8080"
 
 if [ "$REBOOT_REQUIRED" = "1" ]; then
     echo ""
