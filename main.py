@@ -116,10 +116,11 @@ class VideoCamera:
         if PICAMERA_AVAILABLE:
             # Use PiCamera2 for Raspberry Pi (most efficient)
             self.camera = Picamera2()
-            # Configure for low latency streaming
+            # Configure for low latency streaming with 180-degree rotation
             config = self.camera.create_video_configuration(
                 main={"size": (640, 480), "format": "RGB888"},
-                lores={"size": (320, 240), "format": "YUV420"}
+                lores={"size": (320, 240), "format": "YUV420"},
+                transform={"hflip": True, "vflip": True}  # Flip both horizontal and vertical for 180° rotation
             )
             self.camera.configure(config)
             
@@ -140,6 +141,8 @@ class VideoCamera:
             while True:
                 ret, frame = self.camera.read()
                 if ret:
+                    # Flip the frame upside down (rotate 180 degrees)
+                    frame = cv2.flip(frame, -1)  # -1 flips both horizontally and vertically
                     _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                     self.output.write(buffer.tobytes())
                 time.sleep(0.033)  # ~30 FPS
