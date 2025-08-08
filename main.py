@@ -121,9 +121,9 @@ class VideoCamera:
             config = self.camera.create_video_configuration(
                 main={"size": (640, 480), "format": "RGB888"},
                 lores={"size": (320, 240), "format": "YUV420"},
+                transform={"hflip": True, "vflip": True}  # 180-degree rotation
             )
             self.camera.configure(config)
-            self.camera.rotation = 180
             
             # Use hardware JPEG encoder for minimal CPU usage
             self.encoder = JpegEncoder(q=70)  # Quality 70 for balance of size/quality
@@ -136,7 +136,6 @@ class VideoCamera:
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
             self.camera.set(cv2.CAP_PROP_FPS, 30)
             self._start_opencv_capture()
-            self.camera.rotation = 180  # Rotate 180 degrees for OpenCV
 
     def _start_opencv_capture(self):
         """Start OpenCV capture in separate thread"""
