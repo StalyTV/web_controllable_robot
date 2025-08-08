@@ -138,6 +138,7 @@ class VideoCamera:
 
     def _start_opencv_capture(self):
         """Start OpenCV capture in separate thread"""
+        print("Starting OpenCV video capture...")
         def capture_frames():
             while True:
                 ret, frame = self.camera.read()
