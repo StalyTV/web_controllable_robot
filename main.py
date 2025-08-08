@@ -120,7 +120,6 @@ class VideoCamera:
             config = self.camera.create_video_configuration(
                 main={"size": (640, 480), "format": "RGB888"},
                 lores={"size": (320, 240), "format": "YUV420"},
-                transform={"hflip": True, "vflip": True}  # Flip both horizontal and vertical for 180° rotation
             )
             self.camera.configure(config)
             
