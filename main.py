@@ -254,22 +254,6 @@ def index():
             <img id="videoStream" src="{{ url_for('video_feed') }}" alt="Robot Camera Feed">
         </div>
         
-        <div class="controls">
-            <h3>Robot Controls</h3>
-            <div class="control-grid">
-                <div></div>
-                <button class="control-btn" data-command="forward">↑ Forward</button>
-                <div></div>
-                
-                <button class="control-btn" data-command="left">← Left</button>
-                <button class="control-btn" data-command="stop">⏹ Stop</button>
-                <button class="control-btn" data-command="right">→ Right</button>
-                
-                <div></div>
-                <button class="control-btn" data-command="backward">↓ Backward</button>
-                <div></div>
-            </div>
-        </div>
         
         <div class="status" id="status">Ready to control robot</div>
     </div>
